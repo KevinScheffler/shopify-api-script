@@ -11,6 +11,44 @@ const shopifyApi = axios.create({
   },
 });
 
+// Helper Functions
+async function getInventoryItemId(productId) {
+  try {
+    const response = await shopifyApi.get(`/products/${productId}.json`);
+    const variant = response.data.product.variants[0];
+    console.log('Inventory Item ID:', variant.inventory_item_id);
+    console.log('Variant ID:', variant.id);
+    return { inventoryItemId: variant.inventory_item_id, variantId: variant.id}
+  } catch (error) {
+    console.error('Error getting inventory item ID:', error.response?.data || error.message);
+  }
+}
+
+async function getLocationId() {
+  try {
+    const response = await shopifyApi.get('/locations.json');
+    const locationId = response.data.locations[0].id;
+    console.log('Location ID:', locationId);
+    return locationId;
+  } catch (error) {
+    console.error('Error getting location ID:', error.response?.data || error.message);
+  }
+}
+
+async function enableInventoryTracking(variantId) {
+  try {
+    const response = await shopifyApi.put(`/variants/${variantId}.json`, {
+      variant: {
+        id: variantId,
+        inventory_management: 'shopify',
+      },
+    });
+    console.log(`Inventory tracking enabled for variant ${variantId}`);
+  } catch (error) {
+    console.error('Error enabling inventory tracking:', error.response?.data || error.message);
+  }
+}
+ 
 // Fetch all products
 async function fetchAllProducts() {
   try {
@@ -56,9 +94,11 @@ async function updateInventory(invetoryItemId, available, locationId) {
   }
 }
 
-// Run functions here
 (async () => {
-  await fetchAllProducts();
-  await createProduct();
-  // await updateInventory('your_inventory_item_id', 50, 'your_location_id');
+  // await fetchAllProducts();
+  // await createProduct();
+  const { inventoryItemId, variantId } = await getInventoryItemId('10282663117103')
+  const locationId = await getLocationId();
+  await enableInventoryTracking(variantId);
+  await updateInventory(inventoryItemId, 100, locationId);
 })();
